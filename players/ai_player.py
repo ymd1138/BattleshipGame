@@ -30,12 +30,15 @@ class AIPlayer(Player):
         self.pred_w = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
         self.pred_c = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
         self.pred_s = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
+        
+        # 以前の状態を保持する．
+        self.previous_enemy_ships = {'w': True, 'c': True, 's': True}
 
 
     def action(self):
         # 攻撃を受けた場合，攻撃された艦がランダムな場所へ移動する．
         if self.attacked_ship:
-            print(self.attacked_ship + " is attacked! Move!")
+            print(" ****************** " + self.attacked_ship + " is attacked! Move! ******************")
             ship = self.ships[self.attacked_ship]
             to = random.choice(self.field)
             while not ship.can_reach(to) or not self.overlap(to) is None:
@@ -79,6 +82,20 @@ class AIPlayer(Player):
                 self.ships[ship_type].hp = cond[ship_type]['hp']
                 self.ships[ship_type].position = cond[ship_type]['position']
 
+        # 相手の艦のHPが0になった場合に，一度だけ初期化する．
+        enemy_cond = data['condition']['enemy']
+        for ship_type in ['w', 'c', 's']:
+            if ship_type not in enemy_cond and self.previous_enemy_ships[ship_type]:
+                if ship_type == 'w':
+                    self.pred_w = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
+                elif ship_type == 'c':
+                    self.pred_c = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
+                elif ship_type == 's':
+                    self.pred_s = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
+                print(" ****************** Enemy " + ship_type + " destroyed! ******************")
+                self.previous_enemy_ships[ship_type] = False
+
+
         # resultとattackedが存在すれば下に進む
         if 'result' in data and 'attacked' in data['result']:
             # 自分もしくは相手の攻撃結果を受け取る
@@ -94,11 +111,10 @@ class AIPlayer(Player):
                     self.pred_w = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
                     self.pred_w[position[0]][position[1]] = 1
                 elif hit == 'c':
-                    self.pred_w = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
-                    self.pred_w[position[0]][position[1]] = 1
-                # sに攻撃が命中した場合は、撃沈するので初期化のみ．
-                elif hit == 's':
-                    self.pred_w = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
+                    self.pred_c = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
+                    self.pred_c[position[0]][position[1]] = 1
+                # sに攻撃が命中した場合は撃沈するので，上で初期化すればよい．
+
                 # hitしなかったら、そのマスは0にする．
                 else:
                     self.pred_w[position[0]][position[1]] = 0
@@ -135,13 +151,18 @@ class AIPlayer(Player):
             # 相手のターンの終わりなら，相手の攻撃結果を基にスコアを更新する．
             # すべての艦の予測マップについて、相手が攻撃した場所の周囲1マス（中心も含む）に足す．
             else:
-                for dx in [-1, 0, 1]:
+                for ship_type in ['w', 'c', 's']:
+                    if self.previous_enemy_ships[ship_type]:
+                        for dx in [-1, 0, 1]:
                             for dy in [-1, 0, 1]:
                                 x, y = position[0] + dx, position[1] + dy
                                 if Player.in_field([x, y]):
-                                    self.pred_w[x][y] += 1/9
-                                    self.pred_c[x][y] += 1/9
-                                    self.pred_s[x][y] += 1/9
+                                    if ship_type == 'w':                                 
+                                        self.pred_w[x][y] += 1/9
+                                    elif ship_type == 'c':
+                                        self.pred_c[x][y] += 1/9
+                                    elif ship_type == 's':
+                                        self.pred_s[x][y] += 1/9
                                     
             self.display_predictions()
     
