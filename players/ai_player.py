@@ -142,6 +142,29 @@ class AIPlayer(Player):
                                     self.pred_w[x][y] += 1/9
                                     self.pred_c[x][y] += 1/9
                                     self.pred_s[x][y] += 1/9
+                                    
+            self.display_predictions()
+    
+    # アスキーアートで表示する
+    def display_predictions(self):
+        print("Prediction for 'w':")
+        self.print_ascii_art(self.pred_w)
+        print("Prediction for 'c':")
+        self.print_ascii_art(self.pred_c)
+        print("Prediction for 's':")
+        self.print_ascii_art(self.pred_s)
+        print()
+
+    def print_ascii_art(self, pred):
+        print("   |", end="")
+        for i in range(Player.FIELD_SIZE):
+            print(f"  {i}   |", end="")
+        print("\n" + "--------" * Player.FIELD_SIZE)
+        for i in range(Player.FIELD_SIZE):
+            print(f" {i} |", end="")
+            for j in range(Player.FIELD_SIZE):
+                print(f" {pred[i][j]:.2f} |", end="")
+            print("\n" + "--------" * Player.FIELD_SIZE)
 
 
 # 仕様に従ってサーバとソケット通信を行う．
