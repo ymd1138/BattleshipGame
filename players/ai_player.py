@@ -38,7 +38,7 @@ class AIPlayer(Player):
     def action(self):
         # 攻撃を受けた場合，攻撃された艦がランダムな場所へ移動する．
         if self.attacked_ship:
-            print(" ****************** " + self.attacked_ship + " is attacked! Move! ******************")
+            print(" **************** " + self.attacked_ship + " is attacked! Move! ****************")
             ship = self.ships[self.attacked_ship]
             to = random.choice(self.field)
             while not ship.can_reach(to) or not self.overlap(to) is None:
@@ -92,8 +92,22 @@ class AIPlayer(Player):
                     self.pred_c = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
                 elif ship_type == 's':
                     self.pred_s = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
-                print(" ****************** Enemy " + ship_type + " destroyed! ******************")
+                print(" **************** Enemy " + ship_type + " destroyed! ****************")
                 self.previous_enemy_ships[ship_type] = False
+
+        # 相手の移動結果を反映する．
+        if 'result' in data and 'moved' in data['result']:
+            move_result = data['result']['moved']
+            ship = move_result['ship']
+            distance = move_result['distance']
+            dx, dy = distance
+
+            if ship == 'w':
+                self.pred_w = self.move_predictions(self.pred_w, dx, dy)
+            elif ship == 'c':
+                self.pred_c = self.move_predictions(self.pred_c, dx, dy)
+            elif ship == 's':
+                self.pred_s = self.move_predictions(self.pred_s, dx, dy)
 
 
         # resultとattackedが存在すれば下に進む
@@ -186,6 +200,16 @@ class AIPlayer(Player):
             for j in range(Player.FIELD_SIZE):
                 print(f" {pred[i][j]:.2f} |", end="")
             print("\n" + "--------" * Player.FIELD_SIZE)
+            
+    # 移動を反映させる
+    def move_predictions(self, pred, dx, dy):
+        new_pred = [[0] * Player.FIELD_SIZE for _ in range(Player.FIELD_SIZE)]
+        for i in range(Player.FIELD_SIZE):
+            for j in range(Player.FIELD_SIZE):
+                ni, nj = i + dx, j + dy
+                if Player.in_field([ni, nj]):
+                    new_pred[ni][nj] = pred[i][j]
+        return new_pred
 
 
 # 仕様に従ってサーバとソケット通信を行う．
