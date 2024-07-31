@@ -54,7 +54,7 @@ def main(host, port, seed=0):
         with sock.makefile(mode='rw', buffering=1) as sockfile:
             get_msg = sockfile.readline()
             print(get_msg)
-            player = RandomPlayer()
+            player = RandomPlayer(seed)
             sockfile.write(player.initial_condition()+'\n')
 
             while True:
