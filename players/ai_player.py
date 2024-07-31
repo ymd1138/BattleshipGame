@@ -23,27 +23,40 @@ class AIPlayer(Player):
         positions = {'w': ps[0], 'c': ps[1], 's': ps[2]}
         super().__init__(positions)
 
-    #
-    # 移動か攻撃かランダムに決める．
-    # どれがどこへ移動するか，あるいはどこに攻撃するかもランダム．
-    #
-    def action(self):
-        act = random.choice(["move", "attack"])
+        # 攻撃された艦を保持する．
+        self.attacked_ship = None
 
-        if act == "move":
-            ship = random.choice(list(self.ships.values()))
+    def action(self):
+        # 攻撃を受けた場合，攻撃された艦がランダムな場所へ移動する．
+        if self.attacked_ship:
+            print(self.attacked_ship + " is attacked! Move!")
+            ship = self.ships[self.attacked_ship]
             to = random.choice(self.field)
             while not ship.can_reach(to) or not self.overlap(to) is None:
                 to = random.choice(self.field)
-
+            self.attacked_ship = None
             return json.dumps(self.move(ship.type, to))
-        elif act == "attack":
+
+        else:
             to = random.choice(self.field)
             while not self.can_attack(to):
                 to = random.choice(self.field)
 
             return json.dumps(self.attack(to))
 
+    # メソッドをオーバーライド. 通知された情報で艦の状態を更新する. 
+    def update(self, json_, is_my_turn):
+        data = json.loads(json_)
+        cond = data['condition']['me']
+        for ship_type in list(self.ships):
+            if ship_type not in cond:
+                self.ships.pop(ship_type)
+            else:
+                # 攻撃された艦を取得
+                if self.ships[ship_type].hp > cond[ship_type]['hp']:
+                    self.attacked_ship = ship_type
+                self.ships[ship_type].hp = cond[ship_type]['hp']
+                self.ships[ship_type].position = cond[ship_type]['position']
 
 # 仕様に従ってサーバとソケット通信を行う．
 def main(host, port, seed=0):
